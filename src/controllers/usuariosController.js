@@ -1,36 +1,61 @@
-const Usuario = require('../models/Usuario');
-const bcrypt = require('bcrypt');
+const Usuario = require('../models/usuario');
+
+// Obtener todos los usuarios
+exports.getTodosUsuarios = async (req, res) => {
+  try {
+    const usuarios = await Usuario.find();
+    res.status(200).json(usuarios);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener usuarios', error });
+  }
+};
+
+// Obtener un usuario por ID
+exports.getUsuarioPorId = async (req, res) => {
+  try {
+    const usuario = await Usuario.findById(req.params.id);
+    if (!usuario) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+    res.status(200).json(usuario);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener el usuario', error });
+  }
+};
 
 // Crear un nuevo usuario
-exports.createUsuario = async (req, res) => {
-    const { nombre, email, contraseña, rol } = req.body;
+exports.crearUsuario = async (req, res) => {
+  try {
+    const nuevoUsuario = new Usuario(req.body);
+    const usuarioGuardado = await nuevoUsuario.save();
+    res.status(201).json(usuarioGuardado);
+  } catch (error) {
+    res.status(400).json({ mensaje: 'Error al crear el usuario', error });
+  }
+};
 
-    // Validación básica
-    if (!nombre || !email || !contraseña) {
-        return res.status(400).json({ error: 'Datos de usuario inválidos' });
+// Actualizar un usuario
+exports.actualizarUsuario = async (req, res) => {
+  try {
+    const usuarioActualizado = await Usuario.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!usuarioActualizado) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
+    res.status(200).json(usuarioActualizado);
+  } catch (error) {
+    res.status(400).json({ mensaje: 'Error al actualizar el usuario', error });
+  }
+};
 
-    try {
-        // Encriptar la contraseña antes de guardarla
-        const hashedPassword = await bcrypt.hash(contraseña, 10);
-
-        // Crear un nuevo usuario con la contraseña encriptada
-        const nuevoUsuario = new Usuario({
-            nombre,
-            email,
-            contraseña: hashedPassword,
-            rol: rol || 'usuario'
-        });
-
-        // Guardar el usuario en la base de datos
-        await nuevoUsuario.save();
-
-        res.status(201).json({ message: 'Usuario creado exitosamente', usuario: nuevoUsuario });
-    } catch (error) {
-        if (error.code === 11000) {
-            res.status(400).json({ error: 'El email ya está registrado' });
-        } else {
-            res.status(500).json({ error: 'Error al crear usuario' });
-        }
+// Eliminar un usuario
+exports.eliminarUsuario = async (req, res) => {
+  try {
+    const usuarioEliminado = await Usuario.findByIdAndDelete(req.params.id);
+    if (!usuarioEliminado) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
+    res.status(200).json({ mensaje: 'Usuario eliminado exitosamente' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al eliminar el usuario', error });
+  }
 };
