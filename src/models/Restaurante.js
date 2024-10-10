@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose'); 
 
 const restauranteSchema = new mongoose.Schema({
     nombre: { type: String, required: true },
@@ -9,10 +9,13 @@ const restauranteSchema = new mongoose.Schema({
         ubicacion: {
             type: {
                 type: [Number],
-                 required: true,
-                 index: '2dsphere'
+                enum: ['Point'],
+                required: true
             },
-        
+            cordenadas: {
+                type: [Number],
+                required: true
+            },
         }    
     },
     estrellas: { type: Number, min: 1, max: 5 },
@@ -23,7 +26,7 @@ const restauranteSchema = new mongoose.Schema({
     totalPuntuaciones: { type: Number, default: 0 }
 });
 
-restauranteSchema.index({ 'ubicacion': '2dsphere' }); // Para consultas geoespaciales
+restauranteSchema.index({ "contacto.ubicacion": "2dsphere" }); // Índice definido una sola vez
 
 const Restaurante = mongoose.model('Restaurante', restauranteSchema);
 

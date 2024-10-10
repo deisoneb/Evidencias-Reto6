@@ -105,12 +105,11 @@ const Restaurante = require('../models/Restaurante');
 // Obtener restaurantes cercanos basados en la ubicación del usuario
 router.get('/cercanos', restaurantesController.getLocation)
 
-
 /**
  * @swagger
  * /restaurantes/tipo/{tipo}:
  *   get:
- *     summary: Obtiene restaurantes por tipo de comida ordenado por estrellas de mayor a menor
+ *     summary: Obtener restaurantes por tipo de comida, ordenados por cercanía
  *     tags: [Restaurantes]
  *     parameters:
  *       - in: path
@@ -119,21 +118,36 @@ router.get('/cercanos', restaurantesController.getLocation)
  *           type: string
  *         required: true
  *         description: Tipo de comida o categoría
+ *       - in: query
+ *         name: latitud
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Latitud de la ubicación del usuario
+ *       - in: query
+ *         name: longitud
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: Longitud de la ubicación del usuario
  *     responses:
  *       200:
- *         description: Lista de restaurantes del tipo especificado
+ *         description: Lista de restaurantes del tipo especificado, ordenados por cercanía
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Restaurante'
+ *       400:
+ *         description: Faltan parámetros de latitud y longitud
  *       404:
  *         description: No se encontraron restaurantes para la categoría especificada
  *       500:
- *         description: Error al obtener restaurantes por categoría
+ *         description: Error interno del servidor al obtener restaurantes por categoría
  */
 router.get('/tipo/:tipo', restaurantesController.getMenu);
+
 
   
 /**

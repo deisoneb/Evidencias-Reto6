@@ -1,37 +1,20 @@
-/*import mongoose from "mongoose";
-import { MONGODB_URI } from "./config.js";
+const mongoose = require('mongoose');
+require('dotenv').config();
 
-try {
-  const db = await mongoose.connect(MONGODB_URI);
-  console.log("Connected to ", db.connection.name);
-} catch (error) {
-  console.error(error);
-}
-
-mongoose.connection.on("connected", () => {
-  console.log("Mongoose is connected");
-});
-
-mongoose.connection.on("disconnected", () => {
-  console.log("Mongoose is disconnected");
-});
-*/
-
-const { MongoClient } = require('mongodb');
-
-let dbConnection;
-
-module.exports = {
-  connectToDb: (cb) => {
-    MongoClient.connect('mongodb://localhost:27017/TattlerDB')
-      .then((client) => {
-        dbConnection = client.db();
-        return cb();
-      })
-      .catch(err => {
-        console.log(err);
-        return cb(err);
-      });
-  },
-  getDb: () => dbConnection
+const connectDB = async () => {
+    console.log('MONGODB_URI:', process.env.MONGODB_URI);
+    try {
+        if (!process.env.MONGODB_URI) {
+            throw new Error('MONGODB_URI is not defined in the environment variables');
+        }
+        await mongoose.connect(process.env.MONGODB_URI, {
+            // Opciones de conexión si son necesarias
+        });
+        console.log('Conectado a la base de datos');
+    } catch (err) {
+        console.error('Error al conectar a la base de datos:', err);
+        process.exit(1);
+    }
 };
+
+module.exports = connectDB;

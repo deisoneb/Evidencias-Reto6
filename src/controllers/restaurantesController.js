@@ -56,7 +56,7 @@ exports.getRestauranteById = async (req, res) => {
   };
 
 
-//Obtener restaurantes por ubicacion de usuario en un radio de 5 KM
+// Obtener restaurantes por ubicación de usuario en un radio de 5 KM
 exports.getLocation = async (req, res) => {
     try {
         const { latitud, longitud } = req.query;
@@ -74,20 +74,23 @@ exports.getLocation = async (req, res) => {
         if (isNaN(lat) || isNaN(long)) {
             return res.status(400).json({ error: 'Latitud y longitud deben ser números válidos.' });
         }
-        
-        // Buscar restaurantes cercanos utilizando $near y $maxDistance (en metros)
-        const restaurantes = await Restaurante.find({
-            'contacto.ubicacion': {
-                $near: {
-                    $geometry: {
-                        type: 'Point',
-                        coordinates: [long, lat]
-                    },
-                    $maxDistance: 5000 // Radio de 5km
+
+        // Buscar restaurantes cercanos utilizando $geoNear con aggregate()
+        const restaurantes = await Restaurante.aggregate([
+            {
+                $geoNear: {
+                    near: { type: "Point", coordinates: [long, lat] },
+                    distanceField: "distancia",
+                    maxDistance: 5000, // Radio de 5km
+                    spherical: true
                 }
             }
-        }).exec(); // Añadir .exec() para asegurar que la promesa se resuelva correctamente
-        
+        ]);
+
+        if (restaurantes.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron restaurantes cercanos en un radio de 5km.' });
+        }
+
         console.log(`Encontrados ${restaurantes.length} restaurantes cercanos.`);
         res.json(restaurantes);
     } catch (error) {
@@ -98,24 +101,51 @@ exports.getLocation = async (req, res) => {
 
 // Obtener restaurantes por tipo de comida
 exports.getMenu = async (req, res) => {
-    const { tipo } = req.params;
+    try {
+        const { tipo } = req.params;
+        const { latitud, longitud } = req.query;
 
-  try {
-    // Búsqueda usando expresiones regulares para coincidencias parciales
-    const restaurantesPorCategoria = await Restaurante.find({
-      categorias: { $regex: tipo, $options: 'i' } // 'i' para que sea case-insensitive
-    }).sort({ estrellas: -1 }); // Ordenar por estrellas de mayor a menor
+        // Validar si se proporcionaron las coordenadas
+        if (!latitud || !longitud) {
+            return res.status(400).json({ error: 'Latitud y longitud son requeridos.' });
+        }
 
-    if (restaurantesPorCategoria.length === 0) {
-      return res.status(404).json({ message: `No se encontraron restaurantes para la categoría: ${tipo}` });
+        // Convertir las coordenadas a tipo numérico
+        const lat = parseFloat(latitud);
+        const long = parseFloat(longitud);
+
+        // Validar que las coordenadas sean números válidos
+        if (isNaN(lat) || isNaN(long)) {
+            return res.status(400).json({ error: 'Latitud y longitud deben ser números válidos.' });
+        }
+
+        // Convertir el tipo de comida a minúsculas para la comparación
+        const tipoLowerCase = tipo.toLowerCase();
+
+        // Buscar restaurantes por tipo de comida, ordenados por cercanía
+        const restaurantes = await Restaurante.aggregate([
+            {
+                $geoNear: {
+                    near: { type: "Point", coordinates: [long, lat] },
+                    distanceField: "distancia",
+                    maxDistance: 5000, // Radio de 5km
+                    spherical: true,
+                    query: { 
+                        categorias: {
+                             $regex: new RegExp(tipoLowerCase, 'i') 
+                        }
+                    }
+                }
+            }
+        ]);
+
+        if (restaurantes.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron restaurantes para la categoría especificada en un radio de 5km.' });
+        }
+
+        res.json(restaurantes);
+    } catch (error) {
+        console.error("Error al buscar restaurantes por tipo de comida:", error);
+        res.status(500).json({ error: 'Error interno del servidor.' });
     }
-
-    res.json(restaurantesPorCategoria);
-  } catch (error) {
-    console.error("Error al obtener restaurantes por categoría:", error);
-    res
-      .status(500)
-      .json({ error: "Error al obtener restaurantes por categoría." });
-  }
 };
-  
